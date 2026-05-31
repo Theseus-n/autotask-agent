@@ -18,7 +18,7 @@ class LMSAgent:
         self.username = os.getenv("LMS_USERNAME")
         self.password = os.getenv("LMS_PASSWORD")
     
-    async def run_workflow(self):
+    async def main(self):
         async with async_playwright() as p:
             print("Browser login..")
             browser = await p.chromium.launch(headless=False, slow_mo=2000)
@@ -47,6 +47,6 @@ class LMSAgent:
 
 if __name__ == "__main__":
     agent = LMSAgent()
-    asyncio.run(agent.run_workflow())
+    asyncio.run(agent.main())
 
             
