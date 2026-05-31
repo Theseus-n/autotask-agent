@@ -1,1 +1,5 @@
 pytest-playwright
+playwright
+openai
+python-dotenv
+fpdf2
