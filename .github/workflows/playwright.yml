@@ -6,7 +6,7 @@ on:
     branches: [ main, master ]
 jobs:
   test:
-    timeout-minutes: 60
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -24,5 +24,6 @@ jobs:
     - name: Ensure browsers are installed
       run: playwright install --with-deps
 
-    - name: Run Playwright tests
-      run: python agent.py
+    # Langkah di bawah ini kita komentari agar GitHub tidak mencoba menjalankan bot login tanpa .env dan layar
+    # - name: Run Playwright tests
+    #   run: python agent.py
