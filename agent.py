@@ -30,7 +30,7 @@ class LMSAgent:
             print(f"\nLogging in to {self.lms_url}")
             await page.goto(self.lms_url, timeout=15000)
         except PlaywrightTimeoutError:
-            print("LMS Timeout.")
+            print("LMS Timeout. Check your connection")
             return False
         except Exception as e:
             if "ERR_INTERNET_DISCONNECTED" in str(e):
@@ -63,29 +63,61 @@ class LMSAgent:
 
     async def notification(self, page: Page):
         try:
-            notification_button = page.get_by_role("button", name=re.compile(r"notification", re.IGNORECASE))
+            # Punching the notification button from tracking the css named fa-bell
+            notification_button = page.locator("i.fa-bell").first
 
-            # For visible is depend on your internet, current default is 10s
+            # Waiting result..
             await notification_button.wait_for(state="visible", timeout=10000)
             await notification_button.click()
 
-            # Getting the first notification
-            view_all_link = page.get_by_role("link", name="View full notification").first
-            await view_all_link.wait_for(state="visible", timeout=3000)
-            await view_all_link.click()
+            await page.locator("div.content-item-container.notification").first.wait_for(state="visible", timeout=5000)
 
-            await page.wait_for_load_state("networkidle")
-            print("Notification clicked. ")
+            notification_items = await page.locator("div.content-item-container.notification").all()
+            print("Checking notif")
+
+            if not notification_items:
+                print("There is no notification")
+                return False
+        
+            notification_result = []
+
+            for i in range(len(notification_items)):
+                if i > 0:
+                    await notification_button.click()
+                    await page.locator("div.content-item-container.notification").nth(i).wait_for(state="visible", timeout=3000)
+
+                current_item = page.locator("div.content-item-container.notification").nth(i)
+                view_link = current_item.get_by_role("link", name="View full notification")
+                await view_link.click()
+
+                await page.wait_for_load_state("networkidle")
+
+                link_task = page.locator("div.content a").nth(-1)
+                print(f"Current task get!")
+
+                link_course = page.locator("div.content a").nth(0)
+                print(f"Current course get!")
+
+                name_task = (await link_task.text_content()).strip()
+                print(f"Current name get! {name_task}")
+
+                name_course = (await link_course.text_content()).strip()
+                print(f"Current course get! {name_course}")
+                
+                result = f"Task info: {name_task} from Course: {name_course}"
+                notification_result.append(result)
+
+                await page.go_back()
+                await notification_button.wait_for(state="attached")
+
+            return notification_result
 
         except PlaywrightTimeoutError:
-            print(
-                "\nTimeout error."
-            )
-            print(
-                "Elemen name cannot be found."
-            )
+            print("\nTimeout error.\nElemen name cannot be found.")
+            return False
         except Exception as e:
             print(f"\nError: {e}")
+            return False
 
 
 async def main():
