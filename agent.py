@@ -119,6 +119,59 @@ class LMSAgent:
             print(f"\nError: {e}")
             return False
 
+    async def course_query(self, page:Page):
+        container_locator = page.locator("[role='list']")
+
+        try: 
+            await container_locator.wait_for(state="visible", timeout=8000)
+        except PlaywrightTimeoutError:
+            print("Cannot find container")
+            return False
+        
+        items_locator = container_locator.locator("[role='listitem']")
+
+        await items_locator.first.wait_for(state="attached", timeout = 5000)
+        items = await items_locator.all()
+
+        courses = {}
+
+        if not items:
+            print("Tidak ada mata kuliah")
+            return False
+        
+        for i in items:
+            link_locator = i.locator("a.aalink").first
+
+            if await link_locator.count() > 0:
+                href = await link_locator.get_attribute("href")
+                raw = await link_locator.inner_text()
+                text = re.sub(r'(?i)course\s+name', '', raw).strip() if raw else ""
+
+                if text and href:
+                    courses[text] = href
+        
+        if not courses:
+            print("There is no courses")
+            return False
+        
+        print("\n=== DAFTAR MATA KULIAH YANG DITEMUKAN ===")
+        for index, course_name in enumerate(courses.keys(), 1):
+            print(f"{index}. {course_name}")
+
+        chosen_course = input("\nMasukkan nama mata kuliah: ").strip()
+
+        if chosen_course in courses:
+            target_url = courses[chosen_course]
+
+            print(f"\nNavigasi ke: {target_url}")
+            await page.goto(target_url, timeout=15000)
+            await page.wait_for_load_state("networkidle")
+            print(f"Berhasil masuk ke halaman mata kuliah!")
+            return True
+        else:
+            print(f"Mata kuliah '{chosen_course}' tidak ditemukan di dalam dictionary hasil query.")
+            return False
+
 
 async def main():
     print("Starting Agent... Goodluck")
@@ -136,7 +189,9 @@ async def main():
             login_success = await agent.login(page)
 
             if login_success:
-                await agent.notification(page)
+                # await agent.notification(page)
+
+                await agent.course_query(page)
                 print("Done.. ")
         except PlaywrightTimeoutError as e:
             print(f"\n[ERROR] Waktu habis saat menunggu elemen. Detail: {e}")
